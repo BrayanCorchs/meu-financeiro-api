@@ -516,7 +516,7 @@ input[type=color]{height:46px;padding:4px;border-radius:10px;border:1px solid va
 /* Endereço do seu back-end em Python, sem barra no final.
    Exemplo: var API_URL="https://meu-financeiro-api.onrender.com";
    Vazio = o app salva só neste aparelho. */
-var API_URL="http://localhost:5000";
+var API_URL="";
 var KEY="meu-caixa-v1",TKEY="meu-financeiro-token",RES="Reserva";
 var CATS={saida:["Mercado","Alimentação","Moradia","Água","Luz","Internet e celular","Faculdade","Contas","Transporte","Saúde","Estudos","Lazer","Compras","Assinaturas","Outros",RES],
           entrada:["Salário","Adiantamento","Extra","Vale / Benefício","13º e férias","Freelance","Vendas","Presente","Outros"]};
@@ -740,9 +740,10 @@ function bancoAgora(b){
     var conta=ehConta(it);
     if(cred){
       if(!it.fixo){if((it.criado||0)>T)l-=it.valor}   /* compra no crédito: o valor total sai do limite na hora */
-      else{var d0=Number(it.data.slice(8));           /* assinatura no crédito: sai do limite a cada mês, no dia da cobrança */
-        for(var k=Math.max(idxDe(it.data),idxT);k<=IDX_HOJE;k++){var ult=new Date(Math.floor(k/12),k%12+1,0).getDate(),
-          dc=new Date(Math.floor(k/12),k%12,Math.min(d0,ult)).getTime();if(dc>T&&dc<=agora)l-=it.valor}}
+      else{                                            /* conta fixa no crédito: a do mês sai do limite assim que é lançada,
+                                                          e a de cada mês seguinte quando o mês começa */
+        var S=Math.max(T,it.criado||0),dS=new Date(S),idxS=dS.getFullYear()*12+dS.getMonth();
+        for(var k=Math.max(idxDe(it.data),idxS);k<=IDX_HOJE;k++){if(k>idxS||(it.criado||0)>T)l-=it.valor}}
     }
     else if(!conta){if((it.criado||0)>T)s-=it.valor}
     if(conta&&it.pagos)Object.keys(it.pagos).forEach(function(k){
@@ -1182,7 +1183,7 @@ function ajustar(){
     var bq=$("#f-banco").value,bb=bq&&state.bancos.find(function(x){return x.id===bq});
     if(!bb)dica+=(dica?" ":"")+"Escolha o banco do cartão para descontar do limite.";
     else if(bb.limite){var a=bancoAgora(bb),ja=state.editId&&state.items.some(function(x){return x.id===state.editId&&x.banco===bb.id&&x.forma==="Crédito"});
-      dica+=(dica?" ":"")+(v>0?(fixo?"Desconta "+R(v)+" do limite do "+bb.nome+" todo mês.":"Desconta "+R(v)+" do limite do "+bb.nome+"."):"")+
+      dica+=(dica?" ":"")+(v>0?(fixo?"Desconta "+R(v)+" do limite do "+bb.nome+" agora e de novo a cada mês.":"Desconta "+R(v)+" do limite do "+bb.nome+"."):"")+
         (ja?"":" Limite disponível hoje: "+R(a.disp)+".")+" Aparece em Contas para você marcar quando pagar a fatura."}
     else dica+=(dica?" ":"")+"O "+bb.nome+" está sem limite cadastrado. Toque em Alterar no cartão dele para informar.";
   }
